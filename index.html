@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRUNG HẢI - HRM ENTERPRISE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #334155; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        aside { width: 260px; background: var(--primary); color: #fff; display: flex; flex-direction: column; }
+        aside .logo { padding: 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #1e293b; }
+        aside .menu { padding: 20px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; }
+        aside .menu div { padding: 10px 15px; border-radius: 6px; transition: 0.2s; }
+        aside .menu div:hover, aside .menu div.active { background: var(--accent); }
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        header { padding: 20px; background: #fff; border-bottom: 1px solid #e2e8f0; font-size: 1.2rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { font-size: 0.9rem; color: #64748b; }
+        .card p { font-size: 1.8rem; font-weight: bold; margin-top: 5px; color: var(--primary); }
+        .table-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        th { background: #f1f5f9; color: var(--primary); }
+        .btn { background: var(--accent); color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn:hover { opacity: 0.9; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
+        .form-group label { font-size: 0.9rem; font-weight: 600; color: var(--primary); }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="logo">TRUNG HẢI HRM</div>
+        <div class="menu">
+            <div class="active" onclick="switchTab('dashboard', event)">📊 Tổng quan Dashboard</div>
+            <div onclick="switchTab('nhansu', event)">👥 Danh sách Nhân sự</div>
+            <div onclick="switchTab('themnhansu', event)">➕ Thêm Nhân sự mới</div>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <span id="header-title">Dashboard Thống Kê Nhân Sự</span>
+            <button class="btn" onclick="fetchSystemData()" style="padding: 6px 12px; font-size: 0.85rem;">🔄 Làm mới dữ liệu</button>
+        </header>
+        <div class="content">
+            <!-- TAB DASHBOARD -->
+            <div id="tab-dashboard" class="tab-content">
+                <div class="cards">
+                    <div class="card">
+                        <h3>Tổng Số Nhân Sự</h3>
+                        <p id="stat-total">--</p>
+                    </div>
+                    <div class="card">
+                        <h3>Đang Làm Việc</h3>
+                        <p id="stat-working">--</p>
+                    </div>
+                    <div class="card">
+                        <h3>Thử Việc / Học Việc</h3>
+                        <p id="stat-probation">--</p>
+                    </div>
+                    <div class="card">
+                        <h3>Đơn Vị / Phòng Ban</h3>
+                        <p id="stat-department">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB DANH SÁCH NHÂN SỰ -->
+            <div id="tab-nhansu" class="tab-content" style="display:none;">
+                <div class="table-container">
+                    <h3>Danh Sách Chi Tiết Nhân Sự</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã NV</th>
+                                <th>Họ và Tên</th>
+                                <th>Giới Tính</th>
+                                <th>Vị Trí</th>
+                                <th>Đơn Vị</th>
+                                <th>Số Điện Thoại</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employee-table-body">
+                            <tr><td colspan="7" style="text-align: center;">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB THÊM NHÂN SỰ MỚI -->
+            <div id="tab-themnhansu" class="tab-content" style="display:none;">
+                <div class="table-container" style="max-width: 800px; margin: 0 auto;">
+                    <h3>Thêm Hồ Sơ Nhân Sự Mới</h3>
+                    <form id="add-employee-form" onsubmit="submitEmployee(event)" style="margin-top: 20px;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Mã Nhân Viên (*)</label>
+                                <input type="text" id="MaNV" required placeholder="VD: TH021">
+                            </div>
+                            <div class="form-group">
+                                <label>Họ và Tên (*)</label>
+                                <input type="text" id="HoVaTen" required placeholder="VD: Nguyễn Văn B">
+                            </div>
+                            <div class="form-group">
+                                <label>Giới Tính</label>
+                                <select id="GioiTinh">
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Vị Trí Công Việc</label>
+                                <input type="text" id="ViTri" placeholder="VD: IT Helpdesk">
+                            </div>
+                            <div class="form-group">
+                                <label>Đơn Vị Công Tác</label>
+                                <input type="text" id="DonVi" placeholder="VD: Phòng Kỹ Thuật">
+                            </div>
+                            <div class="form-group">
+                                <label>Số Điện Thoại</label>
+                                <input type="text" id="SDT" placeholder="VD: 0901234567">
+                            </div>
+                            <div class="form-group">
+                                <label>Email Công Việc</label>
+                                <input type="email" id="Email" placeholder="VD: b.nv@trunghai.vn">
+                            </div>
+                            <div class="form-group">
+                                <label>Tính Chất Lao Động</label>
+                                <select id="TinhChat">
+                                    <option value="Chính thức">Chính thức</option>
+                                    <option value="Thử việc">Thử việc</option>
+                                    <option value="Học việc">Học việc</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Trạng Thái Làm Việc</label>
+                                <select id="TrangThai">
+                                    <option value="Đang làm việc">Đang làm việc</option>
+                                    <option value="Đã nghỉ việc">Đã nghỉ việc</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ngày Vào Làm</label>
+                                <input type="date" id="NgayVaoLam">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn" style="width: 100%; margin-top: 10px;" id="submit-btn">Lưu Hồ Sơ Nhân Sự</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // THAY ĐƯỜNG DẪN WEB APP CỦA BẠN VÀO ĐÂY
+        const API_URL = "https://script.google.com/macros/s/AKfycbxrNnPRL5fcyra9rKJ3Onqkru4krJK0M-YLjAzwPBKPce1DdXgSi7-E044SohztFnWl1A/exec";
+
+        function switchTab(tabName, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.menu div').forEach(el => el.classList.remove('active'));
+            
+            if(tabName === 'dashboard') {
+                document.getElementById('tab-dashboard').style.display = 'block';
+                document.getElementById('header-title').innerText = 'Dashboard Thống Kê Nhân Sự';
+            } else if(tabName === 'nhansu') {
+                document.getElementById('tab-nhansu').style.display = 'block';
+                document.getElementById('header-title').innerText = 'Quản Lý Danh Sách Nhân Sự';
+            } else if(tabName === 'themnhansu') {
+                document.getElementById('tab-themnhansu').style.display = 'block';
+                document.getElementById('header-title').innerText = 'Thêm Mới Nhân Sự';
+            }
+            if(event) event.currentTarget.classList.add('active');
+        }
+
+        async function fetchSystemData() {
+            try {
+                let response = await fetch(API_URL + "?action=getData");
+                let data = await response.json();
+                
+                let total = data.nhanSu.length;
+                let working = data.nhanSu.filter(i => i.TrangThai === 'Đang làm việc').length;
+                let probation = data.nhanSu.filter(i => i.TinhChat === 'Thử việc' || i.TinhChat === 'Học việc').length;
+                let departments = data.phongBan.length;
+
+                document.getElementById('stat-total').innerText = total;
+                document.getElementById('stat-working').innerText = working;
+                document.getElementById('stat-probation').innerText = probation;
+                document.getElementById('stat-department').innerText = departments;
+
+                let tbody = document.getElementById('employee-table-body');
+                tbody.innerHTML = '';
+                if(total === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center;">Chưa có dữ liệu nhân sự</td></tr>`;
+                    return;
+                }
+
+                data.nhanSu.forEach(emp => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${emp.MaNV || ''}</td>
+                        <td><b>${emp.HoVaTen || ''}</b></td>
+                        <td>${emp.GioiTinh || ''}</td>
+                        <td>${emp.ViTri || ''}</td>
+                        <td>${emp.DonVi || ''}</td>
+                        <td>${emp.SDT || ''}</td>
+                        <td><span style="color: ${emp.TrangThai === 'Đang làm việc' ? 'green' : 'red'}">${emp.TrangThai || ''}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch(e) {
+                console.error("Lỗi kết nối dữ liệu:", e);
+            }
+        }
+
+        async function submitEmployee(event) {
+            event.preventDefault();
+            let btn = document.getElementById('submit-btn');
+            btn.innerText = "Đang lưu...";
+            btn.disabled = true;
+
+            let formData = {
+                MaNV: document.getElementById('MaNV').value,
+                HoVaTen: document.getElementById('HoVaTen').value,
+                GioiTinh: document.getElementById('GioiTinh').value,
+                ViTri: document.getElementById('ViTri').value,
+                DonVi: document.getElementById('DonVi').value,
+                SDT: document.getElementById('SDT').value,
+                Email: document.getElementById('Email').value,
+                TinhChat: document.getElementById('TinhChat').value,
+                TrangThai: document.getElementById('TrangThai').value,
+                NgayVaoLam: document.getElementById('NgayVaoLam').value
+            };
+
+            try {
+                let response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(formData)
+                });
+                let result = await response.json();
+                if(result.status === 'success') {
+                    alert('Thêm nhân sự mới thành công!');
+                    document.getElementById('add-employee-form').reset();
+                    fetchSystemData();
+                    switchTab('nhansu');
+                } else {
+                    alert('Lỗi: ' + result.message);
+                }
+            } catch(err) {
+                alert('Có lỗi xảy ra khi kết nối tới Google Sheets!');
+                console.error(err);
+            } finally {
+                btn.innerText = "Lưu Hồ Sơ Nhân Sự";
+                btn.disabled = false;
+            }
+        }
+
+        fetchSystemData();
+    </script>
+</body>
+</html>

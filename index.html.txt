@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRUNG HẢI - HRM ENTERPRISE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #334155; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        aside { width: 260px; background: var(--primary); color: #fff; display: flex; flex-direction: column; }
+        aside .logo { padding: 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #1e293b; }
+        aside .menu { padding: 20px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; }
+        aside .menu div { padding: 10px 15px; border-radius: 6px; transition: 0.2s; }
+        aside .menu div:hover, aside .menu div.active { background: var(--accent); }
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        header { padding: 20px; background: #fff; border-bottom: 1px solid #e2e8f0; font-size: 1.2rem; font-weight: bold; }
+        .content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { font-size: 0.9rem; color: #64748b; }
+        .card p { font-size: 1.8rem; font-weight: bold; margin-top: 5px; color: var(--primary); }
+        .table-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        th { background: #f1f5f9; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="logo">TRUNG HẢI HRM</div>
+        <div class="menu">
+            <div class="active" onclick="switchTab('dashboard')">📊 Tổng quan Dashboard</div>
+            <div onclick="switchTab('nhansu')">👥 Danh sách Nhân sự</div>
+        </div>
+    </aside>
+
+    <main>
+        <header id="header-title">Dashboard Thống Kê Nhân Sự</header>
+        <div class="content">
+            <div id="tab-dashboard" class="tab-content">
+                <div class="cards">
+                    <div class="card">
+                        <h3>Tổng Số Nhân Sự</h3>
+                        <p id="stat-total">--</p>
+                    </div>
+                    <div class="card">
+                        <h3>Đang Làm Việc</h3>
+                        <p id="stat-working">--</p>
+                    </div>
+                    <div class="card">
+                        <h3>Thử Việc / Học Việc</h3>
+                        <p id="stat-probation">--</p>
+                    </div>
+                    <div class="card">
+                        <h3>Đơn Vị / Phòng Ban</h3>
+                        <p id="stat-department">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-nhansu" class="tab-content" style="display:none;">
+                <div class="table-container">
+                    <h3>Danh Sách Chi Tiết Nhân Sự</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã NV</th>
+                                <th>Họ và Tên</th>
+                                <th>Giới Tính</th>
+                                <th>Vị Trí</th>
+                                <th>Đơn Vị</th>
+                                <th>Số Điện Thoại</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employee-table-body">
+                            <tr><td colspan="7" style="text-align: center;">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxrNnPRL5fcyra9rKJ3Onqkru4krJK0M-YLjAzwPBKPce1DdXgSi7-E044SohztFnWl1A/exec";
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.menu div').forEach(el => el.classList.remove('active'));
+            
+            if(tabName === 'dashboard') {
+                document.getElementById('tab-dashboard').style.display = 'block';
+                document.getElementById('header-title').innerText = 'Dashboard Thống Kê Nhân Sự';
+                event.currentTarget.classList.add('active');
+            } else if(tabName === 'nhansu') {
+                document.getElementById('tab-nhansu').style.display = 'block';
+                document.getElementById('header-title').innerText = 'Quản Lý Danh Sách Nhân Sự';
+                event.currentTarget.classList.add('active');
+            }
+        }
+
+        async function fetchSystemData() {
+            try {
+                let response = await fetch(API_URL + "?action=getData");
+                let data = await response.json();
+                
+                // Thống kê Dashboard
+                let total = data.nhanSu.length;
+                let working = data.nhanSu.filter(i => i.TrangThai === 'Đang làm việc').length;
+                let probation = data.nhanSu.filter(i => i.TinhChat === 'Thử việc' || i.TinhChat === 'Học việc').length;
+                let departments = data.phongBan.length;
+
+                document.getElementById('stat-total').innerText = total;
+                document.getElementById('stat-working').innerText = working;
+                document.getElementById('stat-probation').innerText = probation;
+                document.getElementById('stat-department').innerText = departments;
+
+                // Đổ dữ liệu vào bảng nhân sự
+                let tbody = document.getElementById('employee-table-body');
+                tbody.innerHTML = '';
+                if(total === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center;">Chưa có dữ liệu nhân sự</td></tr>`;
+                    return;
+                }
+
+                data.nhanSu.forEach(emp => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${emp.MaNV || ''}</td>
+                        <td><b>${emp.HoVaTen || ''}</b></td>
+                        <td>${emp.GioiTinh || ''}</td>
+                        <td>${emp.ViTri || ''}</td>
+                        <td>${emp.DonVi || ''}</td>
+                        <td>${emp.SDT || ''}</td>
+                        <td><span style="color: ${emp.TrangThai === 'Đang làm việc' ? 'green' : 'red'}">${emp.TrangThai || ''}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch(e) {
+                console.error("Lỗi kết nối dữ liệu:", e);
+            }
+        }
+
+        // Tự động tải dữ liệu khi mở trang
+        fetchSystemData();
+    </script>
+</body>
+</html>
